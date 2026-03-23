@@ -1,0 +1,16 @@
+﻿page {
+  background:
+    radial-gradient(circle at top right, rgba(255, 224, 193, 0.9), transparent 36%),
+    linear-gradient(180deg, #fff5ea 0%, #f4ebde 100%);
+  color: #2b261f;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+button {
+  border-radius: 999px;
+  border: none;
+}
+
+image {
+  display: block;
+}

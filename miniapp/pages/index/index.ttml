@@ -1,0 +1,159 @@
+﻿<view class="page">
+  <view class="hero-panel">
+    <text class="hero-title">商家申诉助手</text>
+    <text class="hero-subtitle">选择平台、上传差评证据，快速生成可提交的申诉文案。</text>
+  </view>
+
+  <view class="notice-card" tt:if="{{loading}}">
+    <text class="notice-title">正在同步平台目录</text>
+    <text class="notice-desc">小程序正在读取平台、商标和默认配置，请稍候。</text>
+  </view>
+
+  <view class="notice-card error" tt:if="{{errorMessage}}">
+    <text class="notice-title">加载失败</text>
+    <text class="notice-desc">{{errorMessage}}</text>
+  </view>
+
+  <view class="notice-card empty" tt:if="{{!loading && !hasAvailableCatalog}}">
+    <text class="notice-title">还没有可用平台</text>
+    <text class="notice-desc">请先在后台配置平台和商标，再回到小程序生成申诉。</text>
+  </view>
+
+  <view class="form-card" tt:if="{{hasAvailableCatalog}}">
+    <view class="section-header">
+      <text class="section-title">申诉流程</text>
+      <text class="section-subtitle">按步骤提交平台信息、差评证据并生成申诉文案。</text>
+    </view>
+
+    <view class="step-row">
+      <view class="step-item {{item.active ? 'step-active' : ''}} {{item.done ? 'step-done' : ''}}" tt:for="{{stepItems}}" tt:key="index">
+        <text class="step-index">{{item.index}}</text>
+        <text class="step-title">{{item.title}}</text>
+      </view>
+    </view>
+
+    <view tt:if="{{currentStep === 1}}">
+      <text class="field-label">平台</text>
+      <picker mode="selector" range="{{platformNames}}" value="{{platformIndex}}" bindchange="handlePlatformChange">
+        <view class="field-control picker">{{platformNames[platformIndex] || '请选择平台'}}</view>
+      </picker>
+
+      <text class="field-label">商标</text>
+      <picker mode="selector" range="{{brandNames}}" value="{{brandIndex}}" bindchange="handleBrandChange">
+        <view class="field-control picker">{{brandNames[brandIndex] || '请选择商标'}}</view>
+      </picker>
+      <text class="field-helper" tt:if="{{!hasBrandOptions}}">当前平台下还没有可用商标，请先回后台补充。</text>
+
+      <view class="action-row">
+        <button class="primary-button" bindtap="nextStepFromPlatform">下一步：上传差评证据</button>
+      </view>
+    </view>
+
+    <view tt:if="{{currentStep === 2}}">
+      <view class="field-header-row">
+        <text class="field-label field-label-no-margin">差评文字</text>
+        <text class="field-counter">{{complaintLength}} / 500</text>
+      </view>
+      <textarea
+        class="field-control textarea"
+        maxlength="500"
+        placeholder="请输入用户差评原文或核心投诉内容"
+        value="{{complaintText}}"
+        data-field="complaintText"
+        bindinput="handleInput"
+      />
+
+      <view class="field-header-row">
+        <text class="field-label field-label-no-margin">商家补充说明（可选）</text>
+        <text class="field-counter">{{merchantNoteLength}} / 300</text>
+      </view>
+      <textarea
+        class="field-control textarea-short"
+        maxlength="300"
+        placeholder="例如：已核验订单、已联系用户、存在误解点"
+        value="{{merchantNote}}"
+        data-field="merchantNote"
+        bindinput="handleInput"
+      />
+
+      <text class="field-label">差评图片证据（最多 3 张）</text>
+      <button class="secondary-button" bindtap="chooseEvidenceImages">选择图片</button>
+
+      <view class="image-grid" tt:if="{{evidenceImages.length}}">
+        <view class="image-item" tt:for="{{evidenceImages}}" tt:key="id">
+          <image class="image-thumb" src="{{item.localPath}}" mode="aspectFill" data-path="{{item.localPath}}" bindtap="previewEvidenceImage" />
+          <text class="image-remove" data-id="{{item.id}}" bindtap="removeEvidenceImage">移除</text>
+        </view>
+      </view>
+
+      <view class="action-row">
+        <button class="secondary-button action-button-left" bindtap="prevStep">上一步</button>
+        <button class="primary-button" bindtap="nextStepFromEvidence">下一步：生成申诉</button>
+      </view>
+    </view>
+
+    <view tt:if="{{currentStep === 3}}">
+      <text class="field-label">确认信息</text>
+      <text class="field-helper">平台：{{selectedPlatformName}} ｜ 商标：{{selectedBrandName}}</text>
+      <text class="field-helper">差评文字：{{complaintText || '未填写'}}</text>
+      <text class="field-helper">证据图片：{{evidenceImages.length}} 张</text>
+
+      <view class="action-row">
+        <button class="secondary-button action-button-left" bindtap="prevStep">返回补充材料</button>
+        <button class="primary-button" loading="{{generating}}" disabled="{{loading || !environmentReady}}" bindtap="generateComment">{{generating ? '正在生成...' : '生成申诉文案'}}</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="result-card" tt:if="{{result}}">
+    <view class="section-header compact">
+      <view>
+        <text class="section-title">申诉文案结果</text>
+        <text class="section-subtitle">{{resultGeneratedAt}}</text>
+      </view>
+      <text class="provider-badge">{{resultProviderLabel}}</text>
+    </view>
+
+    <view class="result-meta-grid">
+      <view class="meta-item meta-item-left">
+        <text class="meta-label">平台</text>
+        <text class="meta-value">{{selectedPlatformName}}</text>
+      </view>
+      <view class="meta-item">
+        <text class="meta-label">证据图</text>
+        <text class="meta-value">{{evidenceImages.length}} 张</text>
+      </view>
+      <view class="meta-item meta-item-left meta-item-top">
+        <text class="meta-label">商标</text>
+        <text class="meta-value">{{selectedBrandName}}</text>
+      </view>
+      <view class="meta-item meta-item-top">
+        <text class="meta-label">状态</text>
+        <text class="meta-value">待审核</text>
+      </view>
+    </view>
+
+    <view class="result-body">
+      <text class="result-text">{{result}}</text>
+    </view>
+
+    <view class="warning-box" tt:if="{{warning}}">
+      <text class="warning-title">提示</text>
+      <text class="warning-text">{{warning}}</text>
+    </view>
+
+    <view class="action-row">
+      <button class="primary-button action-button-left" bindtap="copyResult">复制申诉文案</button>
+      <button class="secondary-button" bindtap="generateComment">重新生成</button>
+    </view>
+  </view>
+
+  <view class="guide-card" tt:if="{{!loading && hasAvailableCatalog && !result}}">
+    <text class="guide-title">申诉建议</text>
+    <text class="guide-item">1. 差评原文尽量完整，避免只写情绪性关键词。</text>
+    <text class="guide-item">2. 上传证据图时优先选择可证明履约过程的截图或现场照片。</text>
+    <text class="guide-item">3. 文案生成后请人工复核再提交，避免关键信息遗漏。</text>
+  </view>
+</view>
+
+

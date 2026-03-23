@@ -1,0 +1,57 @@
+{
+  "settings": {
+    "openai": {
+      "baseUrl": "",
+      "apiKey": "",
+      "model": "gpt-4.1-mini",
+      "temperature": 0.8
+    },
+    "defaultSystemPrompt": "你是一名中文本地生活平台运营助手。请根据平台特点与品牌信息，生成自然、可信、没有 AI 痕迹的中文好评。",
+    "defaultPromptTemplate": "请基于以下信息，为 {{platformName}} 上的 {{brandName}} 生成一条中文好评。\n要求：35 到 80 字，语气自然、真实，突出服务或产品细节，不要夸张，不要出现模板化表达。\n用户名称：{{userName}}\n订单号：{{orderNumber}}\n评分：{{rating}} 星\n补充信息：{{customerNote}}",
+    "defaultUserPrefix": "默认用户"
+  },
+  "platforms": [
+    {
+      "id": "platform-meituan",
+      "name": "美团",
+      "code": "meituan",
+      "description": "适合到店餐饮、团购、外卖等评价生成。",
+      "enabled": true,
+      "promptTemplate": "你要为 {{platformName}} 生成一条适合本地生活场景的中文好评。\n品牌：{{brandName}}\n用户：{{userName}}\n订单号：{{orderNumber}}\n评分：{{rating}} 星\n补充信息：{{customerNote}}\n输出要求：40 到 70 字，真实、接地气，尽量体现服务顺畅、体验满意。",
+      "createdAt": "2026-03-21T00:00:00.000Z",
+      "updatedAt": "2026-03-21T00:00:00.000Z"
+    },
+    {
+      "id": "platform-eleme",
+      "name": "饿了么",
+      "code": "eleme",
+      "description": "适合外卖场景评论生成。",
+      "enabled": true,
+      "promptTemplate": "请以消费者视角，为 {{platformName}} 上的 {{brandName}} 生成一条中文好评。\n用户：{{userName}}\n订单号：{{orderNumber}}\n评分：{{rating}} 星\n补充信息：{{customerNote}}\n要求：强调配送、包装、口味或服务感受，语言简洁自然。",
+      "createdAt": "2026-03-21T00:00:00.000Z",
+      "updatedAt": "2026-03-21T00:00:00.000Z"
+    }
+  ],
+  "brands": [
+    {
+      "id": "brand-demo",
+      "name": "示例商标",
+      "logoUrl": "",
+      "note": "这里可以放品牌定位、门店特色或营销信息。",
+      "platformIds": [
+        "platform-meituan",
+        "platform-eleme"
+      ],
+      "createdAt": "2026-03-21T00:00:00.000Z",
+      "updatedAt": "2026-03-21T00:00:00.000Z"
+    }
+  ],
+  "defaultUsers": [],
+  "comments": [],
+  "counters": {
+    "guestUser": 0,
+    "comment": 0
+  },
+  "createdAt": "2026-03-21T00:00:00.000Z",
+  "updatedAt": "2026-03-21T00:00:00.000Z"
+}
