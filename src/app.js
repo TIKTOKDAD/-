@@ -74,18 +74,113 @@ function normalizeCommentRecord(comment) {
   };
 }
 
+function normalizeAppealRecord(appeal) {
+  const appealText = normalizeText(appeal?.appealText);
+
+  return {
+    ...(appeal ?? {}),
+    complaintText: normalizeText(appeal?.complaintText),
+    merchantNote: normalizeText(appeal?.merchantNote),
+    appealText,
+    originalAppealText: normalizeText(appeal?.originalAppealText, appealText),
+    reviewStatus: normalizeText(appeal?.reviewStatus, "pending"),
+    reviewNote: normalizeText(appeal?.reviewNote),
+    reviewedAt: normalizeText(appeal?.reviewedAt),
+    updatedAt: normalizeText(appeal?.updatedAt, normalizeText(appeal?.createdAt)),
+    evidenceImages: Array.isArray(appeal?.evidenceImages) ? appeal.evidenceImages : [],
+    userReviewImages: Array.isArray(appeal?.userReviewImages) ? appeal.userReviewImages : [],
+    merchantAppealImages: Array.isArray(appeal?.merchantAppealImages)
+      ? appeal.merchantAppealImages
+      : [],
+  };
+}
+
 function ensureStateDefaults(draft) {
   draft.defaultUsers = Array.isArray(draft.defaultUsers) ? draft.defaultUsers : [];
   draft.comments = Array.isArray(draft.comments)
     ? draft.comments.map((comment) => normalizeCommentRecord(comment))
     : [];
-  draft.appeals = Array.isArray(draft.appeals) ? draft.appeals : [];
+  draft.appeals = Array.isArray(draft.appeals)
+    ? draft.appeals.map((appeal) => normalizeAppealRecord(appeal))
+    : [];
   draft.counters = {
     guestUser: 0,
     comment: 0,
     appeal: 0,
     ...(draft.counters ?? {}),
   };
+}
+
+function toDateKey(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function createRecentDateKeys(days) {
+  const result = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const cursor = new Date(today);
+    cursor.setDate(today.getDate() - offset);
+    result.push(toDateKey(cursor));
+  }
+
+  return result;
+}
+
+function buildProcessingTrend(appeals, days = 7) {
+  const dateKeys = createRecentDateKeys(days);
+  const bucket = new Map(
+    dateKeys.map((date) => [date, { date, completedCount: 0, totalProcessingHours: 0 }]),
+  );
+
+  appeals.forEach((item) => {
+    if (!["approved", "rejected"].includes(item.reviewStatus)) {
+      return;
+    }
+
+    const createdAt = new Date(item.createdAt);
+    const reviewedAt = new Date(item.reviewedAt);
+
+    if (Number.isNaN(createdAt.getTime()) || Number.isNaN(reviewedAt.getTime())) {
+      return;
+    }
+
+    const dateKey = toDateKey(reviewedAt);
+    const target = bucket.get(dateKey);
+
+    if (!target) {
+      return;
+    }
+
+    const durationHours = Math.max(0, reviewedAt.getTime() - createdAt.getTime()) / 3600000;
+    target.completedCount += 1;
+    target.totalProcessingHours += durationHours;
+  });
+
+  return dateKeys.map((date) => {
+    const item = bucket.get(date) || { date, completedCount: 0, totalProcessingHours: 0 };
+    const avg =
+      item.completedCount > 0
+        ? Number((item.totalProcessingHours / item.completedCount).toFixed(1))
+        : 0;
+
+    return {
+      date,
+      completedCount: item.completedCount,
+      avgProcessingHours: avg,
+    };
+  });
 }
 
 function pickDashboard(data) {
@@ -96,6 +191,19 @@ function pickDashboard(data) {
         String(a.updatedAt || a.createdAt || ""),
       ),
     );
+  const appeals = [...(data.appeals ?? [])]
+    .map((appeal) => normalizeAppealRecord(appeal))
+    .sort((a, b) =>
+      String(b.updatedAt || b.createdAt || "").localeCompare(
+        String(a.updatedAt || a.createdAt || ""),
+      ),
+    );
+  const pendingAppealCount = appeals.filter((item) => item.reviewStatus === "pending").length;
+  const approvedAppealCount = appeals.filter((item) => item.reviewStatus === "approved").length;
+  const rejectedAppealCount = appeals.filter((item) => item.reviewStatus === "rejected").length;
+  const processingTrend = buildProcessingTrend(appeals, 7);
+  const todayKey = toDateKey(new Date());
+  const todayNewAppealCount = appeals.filter((item) => toDateKey(item.createdAt) === todayKey).length;
 
   return {
     summary: {
@@ -104,13 +212,19 @@ function pickDashboard(data) {
       defaultUserCount: data.defaultUsers.length,
       pendingReviewCount: comments.filter((item) => item.reviewStatus === "pending").length,
       commentCount: comments.length,
-      appealCount: Array.isArray(data.appeals) ? data.appeals.length : 0,
+      appealCount: appeals.length,
+      pendingAppealCount,
+      approvedAppealCount,
+      rejectedAppealCount,
+      todayNewAppealCount,
     },
     settings: data.settings,
     platforms: [...data.platforms].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     brands: [...data.brands].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     defaultUsers: [...data.defaultUsers].slice(0, 20),
     comments: comments.slice(0, 50),
+    appeals: appeals.slice(0, 50),
+    processingTrend,
   };
 }
 

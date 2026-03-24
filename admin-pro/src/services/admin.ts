@@ -118,6 +118,10 @@ export type DashboardPayload = {
     pendingReviewCount: number;
     commentCount: number;
     appealCount: number;
+    pendingAppealCount: number;
+    approvedAppealCount: number;
+    rejectedAppealCount: number;
+    todayNewAppealCount: number;
   };
   settings: SettingsPayload;
   platforms: Platform[];
@@ -128,6 +132,12 @@ export type DashboardPayload = {
     createdAt: string;
   }>;
   comments: CommentRecord[];
+  appeals: AppealRecord[];
+  processingTrend: Array<{
+    date: string;
+    completedCount: number;
+    avgProcessingHours: number;
+  }>;
 };
 
 export type LogoUploadPayload = {
