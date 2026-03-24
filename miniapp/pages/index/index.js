@@ -210,9 +210,8 @@ function readImageAsDataUrl(filePath) {
 
 function createStepItems(step) {
   return [
-    { index: 1, title: '选择平台', active: step === 1, done: step > 1 },
-    { index: 2, title: '上传差评证据', active: step === 2, done: step > 2 },
-    { index: 3, title: '生成申诉文案', active: step === 3, done: false },
+    { index: 1, title: '平台与差评信息', active: step === 1, done: step > 1 },
+    { index: 2, title: '商家申诉信息', active: step === 2, done: false },
   ];
 }
 
@@ -241,10 +240,11 @@ Page({
     currentStep: 1,
     stepItems: createStepItems(1),
     complaintText: '',
-    merchantNote: '',
+    merchantAppealText: '',
     complaintLength: 0,
-    merchantNoteLength: 0,
-    evidenceImages: [],
+    merchantAppealLength: 0,
+    userReviewImages: [],
+    merchantAppealImages: [],
     result: '',
     resultProvider: '',
     resultProviderLabel: '',
@@ -276,7 +276,7 @@ Page({
   },
 
   setStep(nextStep) {
-    const step = Math.min(Math.max(Number(nextStep) || 1, 1), 3);
+    const step = Math.min(Math.max(Number(nextStep) || 1, 1), 2);
     this.setData({
       currentStep: step,
       stepItems: createStepItems(step),
@@ -389,17 +389,33 @@ Page({
       nextData.complaintLength = String(value || '').length;
     }
 
-    if (field === 'merchantNote') {
-      nextData.merchantNoteLength = String(value || '').length;
+    if (field === 'merchantAppealText') {
+      nextData.merchantAppealLength = String(value || '').length;
     }
 
     this.setData(nextData);
   },
 
   nextStepFromPlatform() {
-    if (!this.data.selectedPlatform || !this.data.selectedBrand) {
+    if (!this.data.selectedPlatform) {
       tt.showToast({
-        title: '请先选择平台和商标',
+        title: '请先选择平台',
+        icon: 'none',
+      });
+      return;
+    }
+
+    if (!this.data.selectedBrand) {
+      tt.showToast({
+        title: '当前平台未绑定商标',
+        icon: 'none',
+      });
+      return;
+    }
+
+    if (!String(this.data.complaintText || '').trim()) {
+      tt.showToast({
+        title: '请先填写差评内容',
         icon: 'none',
       });
       return;
@@ -408,24 +424,19 @@ Page({
     this.setStep(2);
   },
 
-  nextStepFromEvidence() {
-    if (!String(this.data.complaintText || '').trim()) {
-      tt.showToast({
-        title: '请先填写差评文字',
-        icon: 'none',
-      });
-      return;
-    }
-
-    this.setStep(3);
-  },
-
   prevStep() {
     this.setStep(this.data.currentStep - 1);
   },
 
-  async chooseEvidenceImages() {
-    const remain = 3 - this.data.evidenceImages.length;
+  resolveImageField(type) {
+    return type === 'merchant' ? 'merchantAppealImages' : 'userReviewImages';
+  },
+
+  async chooseImages(event) {
+    const type = String((event.currentTarget && event.currentTarget.dataset.type) || 'user');
+    const field = this.resolveImageField(type);
+    const currentImages = this.data[field] || [];
+    const remain = 3 - currentImages.length;
 
     if (remain <= 0) {
       tt.showToast({
@@ -450,9 +461,9 @@ Page({
             })),
           );
 
-          const next = this.data.evidenceImages.concat(converted).slice(0, 3);
+          const next = currentImages.concat(converted).slice(0, 3);
           this.setData({
-            evidenceImages: next,
+            [field]: next,
           });
         } catch (error) {
           tt.showToast({
@@ -464,18 +475,22 @@ Page({
     });
   },
 
-  removeEvidenceImage(event) {
+  removeImage(event) {
+    const type = String((event.currentTarget && event.currentTarget.dataset.type) || 'user');
+    const field = this.resolveImageField(type);
     const targetId = String(event.currentTarget.dataset.id || '');
-    const next = this.data.evidenceImages.filter((item) => String(item.id) !== targetId);
+    const next = (this.data[field] || []).filter((item) => String(item.id) !== targetId);
 
     this.setData({
-      evidenceImages: next,
+      [field]: next,
     });
   },
 
-  previewEvidenceImage(event) {
+  previewImage(event) {
+    const type = String((event.currentTarget && event.currentTarget.dataset.type) || 'user');
+    const field = this.resolveImageField(type);
     const current = String(event.currentTarget.dataset.path || '');
-    const urls = this.data.evidenceImages.map((item) => item.localPath).filter(Boolean);
+    const urls = (this.data[field] || []).map((item) => item.localPath).filter(Boolean);
 
     if (!current || !urls.length) {
       return;
@@ -491,9 +506,10 @@ Page({
     this.setData({
       complaintText: '',
       complaintLength: 0,
-      merchantNote: '',
-      merchantNoteLength: 0,
-      evidenceImages: [],
+      merchantAppealText: '',
+      merchantAppealLength: 0,
+      userReviewImages: [],
+      merchantAppealImages: [],
       result: '',
       resultProvider: '',
       resultProviderLabel: '',
@@ -530,9 +546,33 @@ Page({
       return;
     }
 
-    if (!platform || !brand) {
+    if (!platform) {
       tt.showToast({
-        title: '请先选择平台和商标',
+        title: '请先选择平台',
+        icon: 'none',
+      });
+      return;
+    }
+
+    if (!brand) {
+      tt.showToast({
+        title: '当前平台未绑定商标',
+        icon: 'none',
+      });
+      return;
+    }
+
+    if (!String(this.data.complaintText || '').trim()) {
+      tt.showToast({
+        title: '请先填写差评内容',
+        icon: 'none',
+      });
+      return;
+    }
+
+    if (!String(this.data.merchantAppealText || '').trim()) {
+      tt.showToast({
+        title: '请填写商家申诉内容',
         icon: 'none',
       });
       return;
@@ -553,8 +593,16 @@ Page({
           platformId: platform.id,
           brandId: brand.id,
           complaintText: String(this.data.complaintText || '').trim(),
-          merchantNote: String(this.data.merchantNote || '').trim(),
-          evidenceImages: (this.data.evidenceImages || []).map((item) => ({
+          userComplaintText: String(this.data.complaintText || '').trim(),
+          merchantNote: String(this.data.merchantAppealText || '').trim(),
+          merchantAppealText: String(this.data.merchantAppealText || '').trim(),
+          userReviewImages: (this.data.userReviewImages || []).map((item) => ({
+            url: item.url,
+          })),
+          merchantAppealImages: (this.data.merchantAppealImages || []).map((item) => ({
+            url: item.url,
+          })),
+          evidenceImages: [...(this.data.userReviewImages || []), ...(this.data.merchantAppealImages || [])].map((item) => ({
             url: item.url,
           })),
         },

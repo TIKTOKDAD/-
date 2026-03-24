@@ -96,7 +96,7 @@ const PromptsPage = () => {
           <ProFormTextArea
             name="appealPromptTemplate"
             label="申诉模板"
-            extra="支持变量：{{platformName}}、{{brandName}}、{{complaintText}}、{{merchantNote}}、{{imageHint}}。"
+            extra="支持变量：{{platformName}}、{{brandName}}、{{complaintText}}、{{userComplaintText}}、{{merchantNote}}、{{merchantAppealText}}、{{userReviewImageHint}}、{{merchantAppealImageHint}}、{{userReviewImageCount}}、{{merchantAppealImageCount}}、{{imageHint}}。"
             fieldProps={{ rows: 8 }}
           />
           <ProFormRadio.Group

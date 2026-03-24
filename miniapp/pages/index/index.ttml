@@ -38,18 +38,8 @@
         <view class="field-control picker">{{platformNames[platformIndex] || '请选择平台'}}</view>
       </picker>
 
-      <text class="field-label">商标</text>
-      <picker mode="selector" range="{{brandNames}}" value="{{brandIndex}}" bindchange="handleBrandChange">
-        <view class="field-control picker">{{brandNames[brandIndex] || '请选择商标'}}</view>
-      </picker>
-      <text class="field-helper" tt:if="{{!hasBrandOptions}}">当前平台下还没有可用商标，请先回后台补充。</text>
+      <text class="field-helper" tt:if="{{!hasBrandOptions}}">当前平台还没有可用商标，请先在后台绑定后再生成申诉。</text>
 
-      <view class="action-row">
-        <button class="primary-button" bindtap="nextStepFromPlatform">下一步：上传差评证据</button>
-      </view>
-    </view>
-
-    <view tt:if="{{currentStep === 2}}">
       <view class="field-header-row">
         <text class="field-label field-label-no-margin">差评文字</text>
         <text class="field-counter">{{complaintLength}} / 500</text>
@@ -63,44 +53,48 @@
         bindinput="handleInput"
       />
 
-      <view class="field-header-row">
-        <text class="field-label field-label-no-margin">商家补充说明（可选）</text>
-        <text class="field-counter">{{merchantNoteLength}} / 300</text>
-      </view>
-      <textarea
-        class="field-control textarea-short"
-        maxlength="300"
-        placeholder="例如：已核验订单、已联系用户、存在误解点"
-        value="{{merchantNote}}"
-        data-field="merchantNote"
-        bindinput="handleInput"
-      />
+      <text class="field-label">用户差评图片（最多 3 张）</text>
+      <button class="secondary-button" data-type="user" bindtap="chooseImages" hover-class="secondary-button-pressed">选择图片</button>
 
-      <text class="field-label">差评图片证据（最多 3 张）</text>
-      <button class="secondary-button" bindtap="chooseEvidenceImages">选择图片</button>
-
-      <view class="image-grid" tt:if="{{evidenceImages.length}}">
-        <view class="image-item" tt:for="{{evidenceImages}}" tt:key="id">
-          <image class="image-thumb" src="{{item.localPath}}" mode="aspectFill" data-path="{{item.localPath}}" bindtap="previewEvidenceImage" />
-          <text class="image-remove" data-id="{{item.id}}" bindtap="removeEvidenceImage">移除</text>
+      <view class="image-grid" tt:if="{{userReviewImages.length}}">
+        <view class="image-item" tt:for="{{userReviewImages}}" tt:key="id">
+          <image class="image-thumb" src="{{item.localPath}}" mode="aspectFill" data-type="user" data-path="{{item.localPath}}" bindtap="previewImage" />
+          <text class="image-remove" data-type="user" data-id="{{item.id}}" bindtap="removeImage">移除</text>
         </view>
       </view>
 
       <view class="action-row">
-        <button class="secondary-button action-button-left" bindtap="prevStep">上一步</button>
-        <button class="primary-button" bindtap="nextStepFromEvidence">下一步：生成申诉</button>
+        <button class="primary-button" bindtap="nextStepFromPlatform" hover-class="primary-button-pressed">下一步：填写商家申诉</button>
       </view>
     </view>
 
-    <view tt:if="{{currentStep === 3}}">
-      <text class="field-label">确认信息</text>
-      <text class="field-helper">平台：{{selectedPlatformName}} ｜ 商标：{{selectedBrandName}}</text>
-      <text class="field-helper">差评文字：{{complaintText || '未填写'}}</text>
-      <text class="field-helper">证据图片：{{evidenceImages.length}} 张</text>
+    <view tt:if="{{currentStep === 2}}">
+      <view class="field-header-row">
+        <text class="field-label field-label-no-margin">商家申诉内容</text>
+        <text class="field-counter">{{merchantAppealLength}} / 500</text>
+      </view>
+      <textarea
+        class="field-control textarea"
+        maxlength="500"
+        placeholder="请输入商家准备提交的申诉内容"
+        value="{{merchantAppealText}}"
+        data-field="merchantAppealText"
+        bindinput="handleInput"
+      />
+
+      <text class="field-label">商家申诉图片（最多 3 张）</text>
+      <button class="secondary-button" data-type="merchant" bindtap="chooseImages" hover-class="secondary-button-pressed">选择图片</button>
+
+      <view class="image-grid" tt:if="{{merchantAppealImages.length}}">
+        <view class="image-item" tt:for="{{merchantAppealImages}}" tt:key="id">
+          <image class="image-thumb" src="{{item.localPath}}" mode="aspectFill" data-type="merchant" data-path="{{item.localPath}}" bindtap="previewImage" />
+          <text class="image-remove" data-type="merchant" data-id="{{item.id}}" bindtap="removeImage">移除</text>
+        </view>
+      </view>
 
       <view class="action-row">
-        <button class="secondary-button action-button-left" bindtap="prevStep">返回补充材料</button>
-        <button class="primary-button" loading="{{generating}}" disabled="{{loading || !environmentReady}}" bindtap="generateComment">{{generating ? '正在生成...' : '生成申诉文案'}}</button>
+        <button class="secondary-button action-button-left" bindtap="prevStep" hover-class="secondary-button-pressed">上一步</button>
+        <button class="primary-button" loading="{{generating}}" disabled="{{loading || !environmentReady}}" bindtap="generateComment" hover-class="primary-button-pressed">{{generating ? '正在生成...' : '生成申诉文案'}}</button>
       </view>
     </view>
   </view>
@@ -121,7 +115,7 @@
       </view>
       <view class="meta-item">
         <text class="meta-label">证据图</text>
-        <text class="meta-value">{{evidenceImages.length}} 张</text>
+        <text class="meta-value">{{userReviewImages.length + merchantAppealImages.length}} 张</text>
       </view>
       <view class="meta-item meta-item-left meta-item-top">
         <text class="meta-label">商标</text>
@@ -143,8 +137,8 @@
     </view>
 
     <view class="action-row">
-      <button class="primary-button action-button-left" bindtap="copyResult">复制申诉文案</button>
-      <button class="secondary-button" bindtap="generateComment">重新生成</button>
+      <button class="primary-button action-button-left" bindtap="copyResult" hover-class="primary-button-pressed">复制申诉文案</button>
+      <button class="secondary-button" bindtap="generateComment" hover-class="secondary-button-pressed">重新生成</button>
     </view>
   </view>
 

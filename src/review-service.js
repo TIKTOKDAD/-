@@ -525,6 +525,29 @@ function buildFallbackAppeal({ platform, brand, complaintText, merchantNote }) {
     .trim();
 }
 
+function mergeEvidenceImages(groups) {
+  const merged = [];
+  const seen = new Set();
+
+  (groups || []).forEach((group) => {
+    (group || []).forEach((item) => {
+      const url = normalizeText(item?.url);
+
+      if (!url || seen.has(url)) {
+        return;
+      }
+
+      seen.add(url);
+      merged.push({
+        ...item,
+        url,
+      });
+    });
+  });
+
+  return merged.slice(0, 6);
+}
+
 function buildImageHint(images) {
   if (!images.length) {
     return '未提供图片证据';
@@ -555,14 +578,24 @@ async function generateAppealInDraft(draft, payload) {
     throw new Error('未找到对应的商标。');
   }
 
-  const complaintText = normalizeText(payload.complaintText);
+  const complaintText = normalizeText(payload.userComplaintText ?? payload.complaintText);
 
   if (!complaintText) {
     throw new Error('差评文字不能为空。');
   }
 
-  const evidenceImages = normalizeEvidenceImages(payload.evidenceImages);
-  const merchantNote = normalizeText(payload.merchantNote, '暂无额外补充。');
+  const userReviewImages = normalizeEvidenceImages(payload.userReviewImages);
+  const merchantAppealImages = normalizeEvidenceImages(payload.merchantAppealImages);
+  const legacyEvidenceImages = normalizeEvidenceImages(payload.evidenceImages);
+  const evidenceImages = mergeEvidenceImages([
+    userReviewImages,
+    merchantAppealImages,
+    legacyEvidenceImages,
+  ]);
+  const merchantNote = normalizeText(
+    payload.merchantAppealText ?? payload.merchantNote,
+    '暂无额外补充。',
+  );
   const systemPrompt = normalizeText(
     draft.settings.appealSystemPrompt,
     '你是一名中文本地生活平台申诉助手。',
@@ -579,8 +612,14 @@ async function generateAppealInDraft(draft, payload) {
     platformName: platform.name,
     brandName: brand.name,
     complaintText,
+    userComplaintText: complaintText,
     merchantNote,
+    merchantAppealText: merchantNote,
     imageHint: buildImageHint(evidenceImages),
+    userReviewImageHint: buildImageHint(userReviewImages),
+    merchantAppealImageHint: buildImageHint(merchantAppealImages),
+    userReviewImageCount: String(userReviewImages.length),
+    merchantAppealImageCount: String(merchantAppealImages.length),
   });
 
   let providerResult;
@@ -618,7 +657,11 @@ async function generateAppealInDraft(draft, payload) {
     brandId: brand.id,
     brandName: brand.name,
     complaintText,
+    userComplaintText: complaintText,
     merchantNote,
+    merchantAppealText: merchantNote,
+    userReviewImages,
+    merchantAppealImages,
     evidenceImages,
     prompt,
     appealText,

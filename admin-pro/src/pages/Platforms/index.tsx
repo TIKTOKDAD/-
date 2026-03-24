@@ -19,7 +19,7 @@ import {
   ProFormTextArea,
   ProTable,
 } from '@ant-design/pro-components';
-import {
+          extra="可选。支持变量：{{platformName}}、{{brandName}}、{{complaintText}}、{{userComplaintText}}、{{merchantNote}}、{{merchantAppealText}}、{{userReviewImageHint}}、{{merchantAppealImageHint}}、{{userReviewImageCount}}、{{merchantAppealImageCount}}、{{imageHint}}。"
   Alert,
   Button,
   Card,

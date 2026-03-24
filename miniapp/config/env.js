@@ -24,7 +24,7 @@ const ENVIRONMENTS = {
   lan: {
     key: 'lan',
     name: '局域网联调',
-    baseUrl: 'http://192.168.2.10:3000',
+    baseUrl: 'http://0.0.0.0:3000',
     editable: false,
     sceneLabel: '同网段联调',
     tips: [
